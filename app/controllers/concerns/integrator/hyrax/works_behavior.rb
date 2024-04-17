@@ -34,7 +34,10 @@ module Integrator
       def find_work_by_query(work_id = params[:id])
         model = find_work_klass(work_id)
         return nil if model.blank?
-        @work_klass = model.constantize
+
+        # We shouldn't need this in Valkyrie anymore since we just search for the id
+        # but I'm keeping this in for now just in case we need the @work_klass elsewhere
+        @work_klass = "#{model}Resource".safe_constantize || model.constantize
         @object = find_work(work_id)
       end
 
@@ -44,7 +47,7 @@ module Integrator
       end
 
       def find_work_by_id(work_id = params[:id])
-        @work_klass.find(work_id)
+        ::Hyrax.query_service.find_by(id: work_id)
       rescue ActiveFedora::ActiveFedoraError
         nil
       end

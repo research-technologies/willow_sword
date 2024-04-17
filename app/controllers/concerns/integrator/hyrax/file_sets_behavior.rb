@@ -8,7 +8,7 @@ module Integrator
       end
 
       def find_file_set_by_id
-        @file_set_klass.find(params[:id]) if @file_set_klass.exists?(params[:id])
+        ::Hyrax.query_service.find_by(id: params[:id])
       rescue ActiveFedora::ActiveFedoraError
         nil
       end

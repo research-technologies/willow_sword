@@ -21,8 +21,8 @@ module Integrator
             @works += work_model.singularize.classify.constantize.all
           end
         else
-          @collection = klass.find(params[:id]) if Collection.exists?(params[:id])
-          @works = @collection.works if @collection.present?
+          @collection = ::Hyrax.query_service.find_by(id:params[:id])
+          @works = ::Hyrax.query_service.find_many_by_ids(ids: @collection.member_collection_ids) if @collection.present?
         end
         unless @collection
           message = "Server cannot find collection with id #{params[:id]}"
