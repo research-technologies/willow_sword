@@ -18,7 +18,7 @@ module WillowSword
       when 'application/atom+xml;type=entry', 'application/xml', 'text/xml'
         # xml deposit
         return false unless validate_atom_entry
-        return false unless save_binary_data
+        return false unless save_atom_xml_data
       else
         # binary deposit
         return false unless validate_binary_deposit

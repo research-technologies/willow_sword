@@ -40,7 +40,7 @@ module WillowSword
       render_not_found and return unless @object
       @error = nil
       if perform_update
-        render 'update.xml.builder', formats: [:xml], status: :no_content
+        render 'update.xml.builder', formats: [:xml], status: :ok
       else
         @error = WillowSword::Error.new("Error updating work") unless @error.present?
         render '/willow_sword/shared/error.xml.builder', formats: [:xml], status: @error.code
