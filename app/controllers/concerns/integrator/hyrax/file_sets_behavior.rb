@@ -16,18 +16,18 @@ module Integrator
       def create_file_set
         @file_set = FileSet.create
         @current_user = User.batch_user unless @current_user.present?
-        @actor = file_set_actor.new(@file_set, @current_user)
-        @actor.file_set.permissions_attributes = @object.permissions.map(&:to_hash)
         # Add file
-        if @files.any?
-          chosen_file = @files.first
-          f = upload_file(chosen_file)
-          @actor.create_content(f)
-          @actor.file_set.title = [File.basename(chosen_file)]
+        f = if @files.any?
+              chosen_file = @files.first
+              Array.wrap(upload_file(chosen_file))
+            end || []
+
+        perform_transaction_for(object: @object, attrs: {}) do
+          transactions["change_set.update_work"]
+            .with_step_args(
+              'work_resource.add_file_sets' => { uploaded_files: f }
+            )
         end
-        # update_metadata
-        @actor.create_metadata(create_file_set_attributes) unless @attributes.blank?
-        @actor.attach_to_work(@object) if @object
       end
 
       def update_file_set

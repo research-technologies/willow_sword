@@ -56,6 +56,7 @@ module WillowSword
           return false
         end
         return false unless parse_metadata(@metadata_file, false)
+        upload_files unless @files.blank?
         create_file_set
         true
       end

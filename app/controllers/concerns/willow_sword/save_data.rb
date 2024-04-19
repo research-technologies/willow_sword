@@ -63,6 +63,7 @@ module WillowSword
       when 'binary'
         new_file_name = @headers[:filename]
         path = File.join(@dir, new_file_name)
+        data.rewind
         File.open(path, 'wb') do |f|
           data.each { |line| f.write(line) }
         end

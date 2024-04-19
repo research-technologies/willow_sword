@@ -12,8 +12,7 @@ module WillowSword
       # @collection_id = params[:collection_id]
       find_work_by_query
       render_not_found and return unless @object
-      file_set_model = WillowSword.config.file_set_models.first.singularize.classify.constantize
-      @file_set_ids = Hyrax.query_service.find_members(resource: @object, model: file_set_model).map { |fs| fs.id.to_s}
+      @file_set_ids = file_set_ids
 
       if (WillowSword.config.xml_mapping_read == 'MODS')
         @mods = assign_model_to_mods
@@ -26,6 +25,7 @@ module WillowSword
     def create
       @error = nil
       if perform_create
+        @file_set_ids = file_set_ids
         # @collection_id = params[:collection_id]
         render 'create.xml.builder', formats: [:xml], status: :created, location: collection_work_url(params[:collection_id], @object)
       else
@@ -72,5 +72,9 @@ module WillowSword
       render '/willow_sword/shared/error.xml.builder', formats: [:xml], status: @error.code
     end
 
+    def file_set_ids
+      file_set_model = WillowSword.config.file_set_models.first.singularize.classify.constantize
+      Hyrax.query_service.find_members(resource: @object, model: file_set_model).map { |fs| fs.id.to_s}
+    end
   end
 end

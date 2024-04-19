@@ -6,7 +6,7 @@
   # xml.link(rel:"edit", href:collection_work_url(params[:collection_id], @object))
   # Add file to work
   xml.link(rel:"edit", href:collection_work_file_sets_url(params[:collection_id], @object))
-  @object.file_set_ids.each do |file_set_id|
+  @file_set_ids.each do |file_set_id|
     xml.entry do
       # Get file metadata
       xml.content(rel:"src", href:collection_work_file_set_url(params[:collection_id], @object, file_set_id))

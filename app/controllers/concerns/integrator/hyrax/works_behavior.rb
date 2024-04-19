@@ -62,7 +62,7 @@ module Integrator
         raise "Object doesn't exist" unless @object
 
         perform_transaction_for(object: @object, attrs: update_attributes) do
-          ::Hyrax::Transactions::Container["change_set.update_work"]
+          transactions["change_set.update_work"]
             .with_step_args(
               'work_resource.add_file_sets' => { uploaded_files: uploaded_files },
               'work_resource.save_acl' => { permissions_params: [update_attributes.try('visibility') || 'open'].compact }
@@ -73,7 +73,16 @@ module Integrator
       def create_work
         attrs = create_attributes
         @object = @work_klass.new
-        work_actor.create(environment(attrs))
+
+        perform_transaction_for(object: @object, attrs: attrs) do
+          transactions['change_set.create_work']
+            .with_step_args(
+              'work_resource.add_file_sets' => { uploaded_files: uploaded_files },
+              'change_set.set_user_as_depositor' => { user: @current_user },
+              'work_resource.change_depositor' => { user: @current_user },
+              'work_resource.save_acl' => { permissions_params: [attrs['visibility'] || 'open'].compact }
+            )
+        end
       end
 
       def create_attributes
@@ -85,9 +94,14 @@ module Integrator
       end
 
       private
+
+        def transactions
+          ::Hyrax::Transactions::Container
+        end
+
         def set_work_klass
           # Transform name of model to match across name variations
-          work_models = WillowSword.config.work_models
+          work_models = WillowSword.config.work_models + resource_models
           if work_models.kind_of?(Array)
             work_models = work_models.map { |m| [m, m] }.to_h
           end
@@ -104,6 +118,14 @@ module Integrator
             # Chooose the first class from the config
             @work_klass = work_models[work_models.keys.first].constantize
           end
+        end
+
+        # models that have been lazyily migrated with the <work>Resource convention
+        # @return ['WorkResource']
+        def resource_models
+          WillowSword.config.work_models.map do |work_type|
+            "#{work_type}Resource".safe_constantize&.to_s
+          end.compact
         end
 
         # @param [Hash] attrs the attributes to put in the environment
@@ -152,9 +174,9 @@ module Integrator
         end
 
         def perform_transaction_for(object:, attrs:)
+          @current_user = User.batch_user unless @current_user.present?
           form = ::Hyrax::Forms::ResourceForm.for(resource: object).prepopulate!
 
-          # TODO: Handle validations
           form.validate(attrs)
 
           transaction = yield
