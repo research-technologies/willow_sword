@@ -51,7 +51,7 @@ module WillowSword
       bag_path = File.join(@dir, 'bag')
       # validate or create bag
       bag = WillowSword::BagPackage.new(contents_path, bag_path)
-      @metadata_file = File.join(bag.package.data_dir, 'metadata.xml')
+      @metadata_file = find_metadata_file_from(bag)
       @files = bag.package.bag_files - [@metadata_file]
     end
 
@@ -75,5 +75,12 @@ module WillowSword
       end
     end
 
+    # Some bags would store the metadata in a /metadata directory
+    def find_metadata_file_from(bag)
+      [
+        File.join(bag.package.data_dir, 'metadata', 'metadata.xml'),
+        File.join(bag.package.data_dir, 'metadata.xml')
+      ].find { |path| File.exist?(path) }
+    end
   end
 end
