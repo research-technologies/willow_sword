@@ -22,6 +22,12 @@ module Integrator
         end
       end
 
+      def uploaded_files
+        return [] unless @file_ids
+
+        @file_ids.map { |file_id| ::Hyrax::UploadedFile.find(file_id) }
+      end
+
       def add_work
         @object = find_work if @object.blank?
         if @object
@@ -34,7 +40,10 @@ module Integrator
       def find_work_by_query(work_id = params[:id])
         model = find_work_klass(work_id)
         return nil if model.blank?
-        @work_klass = model.constantize
+
+        # We shouldn't need this in Valkyrie anymore since we just search for the id
+        # but I'm keeping this in for now just in case we need the @work_klass elsewhere
+        @work_klass = "#{model}Resource".safe_constantize || model.constantize
         @object = find_work(work_id)
       end
 
@@ -44,20 +53,36 @@ module Integrator
       end
 
       def find_work_by_id(work_id = params[:id])
-        @work_klass.find(work_id)
+        ::Hyrax.query_service.find_by(id: work_id)
       rescue ActiveFedora::ActiveFedoraError
         nil
       end
 
       def update_work
         raise "Object doesn't exist" unless @object
-        work_actor.update(environment(update_attributes))
+
+        perform_transaction_for(object: @object, attrs: update_attributes) do
+          transactions["change_set.update_work"]
+            .with_step_args(
+              'work_resource.add_file_sets' => { uploaded_files: uploaded_files },
+              'work_resource.save_acl' => { permissions_params: [update_attributes.try('visibility') || 'open'].compact }
+            )
+        end
       end
 
       def create_work
         attrs = create_attributes
         @object = @work_klass.new
-        work_actor.create(environment(attrs))
+
+        perform_transaction_for(object: @object, attrs: attrs) do
+          transactions['change_set.create_work']
+            .with_step_args(
+              'work_resource.add_file_sets' => { uploaded_files: uploaded_files },
+              'change_set.set_user_as_depositor' => { user: @current_user },
+              'work_resource.change_depositor' => { user: @current_user },
+              'work_resource.save_acl' => { permissions_params: [attrs['visibility'] || 'open'].compact }
+            )
+        end
       end
 
       def create_attributes
@@ -69,9 +94,14 @@ module Integrator
       end
 
       private
+
+        def transactions
+          ::Hyrax::Transactions::Container
+        end
+
         def set_work_klass
           # Transform name of model to match across name variations
-          work_models = WillowSword.config.work_models
+          work_models = WillowSword.config.work_models + resource_models
           if work_models.kind_of?(Array)
             work_models = work_models.map { |m| [m, m] }.to_h
           end
@@ -88,6 +118,14 @@ module Integrator
             # Chooose the first class from the config
             @work_klass = work_models[work_models.keys.first].constantize
           end
+        end
+
+        # models that have been lazyily migrated with the <work>Resource convention
+        # @return ['WorkResource']
+        def resource_models
+          WillowSword.config.work_models.map do |work_type|
+            "#{work_type}Resource".safe_constantize&.to_s
+          end.compact
         end
 
         # @param [Hash] attrs the attributes to put in the environment
@@ -118,7 +156,7 @@ module Integrator
         end
 
         def permitted_attributes
-          @work_klass.properties.keys.map(&:to_sym) + [:id, :edit_users, :edit_groups, :read_groups, :visibility]
+          (@work_klass.attribute_names + [:id, :edit_users, :edit_groups, :read_groups, :visibility]).uniq
         end
 
         def find_work_klass(work_id)
@@ -133,6 +171,23 @@ module Integrator
             model = response.dig('response', 'docs')[0]['has_model_ssim'][0]
           end
           model
+        end
+
+        def perform_transaction_for(object:, attrs:)
+          @current_user = User.batch_user unless @current_user.present?
+          form = ::Hyrax::Forms::ResourceForm.for(resource: object).prepopulate!
+
+          form.validate(attrs)
+
+          transaction = yield
+
+          result = transaction.call(form)
+
+          result.value_or do
+            msg = result.failure[0].to_s
+            msg += " - #{result.failure[1].full_messages.join(',')}" if result.failure[1].respond_to?(:full_messages)
+            raise StandardError, msg, result.trace
+          end
         end
     end
   end

@@ -45,5 +45,5 @@ def get_md5(src_file)
 end
 
 def test_zip(zip_file)
-  `unzip -t /tmp/sandbox20180712-18403-1iwsqff/zip_file.zip | awk '{w=$1 $2} END{print w}'`
+  `unzip -t #{zip_file} | awk '{w=$1 $2} END{print w}'`
 end

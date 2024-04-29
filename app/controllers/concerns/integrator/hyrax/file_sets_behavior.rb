@@ -8,7 +8,7 @@ module Integrator
       end
 
       def find_file_set_by_id
-        @file_set_klass.find(params[:id]) if @file_set_klass.exists?(params[:id])
+        ::Hyrax.query_service.find_by(id: params[:id])
       rescue ActiveFedora::ActiveFedoraError
         nil
       end
@@ -16,34 +16,48 @@ module Integrator
       def create_file_set
         @file_set = FileSet.create
         @current_user = User.batch_user unless @current_user.present?
-        @actor = file_set_actor.new(@file_set, @current_user)
-        @actor.file_set.permissions_attributes = @object.permissions.map(&:to_hash)
         # Add file
-        if @files.any?
-          chosen_file = @files.first
-          f = upload_file(chosen_file)
-          @actor.create_content(f)
-          @actor.file_set.title = [File.basename(chosen_file)]
+        f = if @files.any?
+              chosen_file = @files.first
+              Array.wrap(upload_file(chosen_file))
+            end || []
+
+        perform_transaction_for(object: @object, attrs: {}) do
+          transactions["change_set.update_work"]
+            .with_step_args(
+              'work_resource.add_file_sets' => { uploaded_files: f }
+            )
         end
-        # update_metadata
-        @actor.create_metadata(create_file_set_attributes) unless @attributes.blank?
-        @actor.attach_to_work(@object) if @object
       end
 
       def update_file_set
         raise "File set doesn't exist" unless @file_set
-        @current_user = User.batch_user unless @current_user.present?
-        @actor = file_set_actor.new(@file_set, @current_user)
-        @actor.file_set.permissions_attributes = @object.permissions.map(&:to_hash)
-        # update file
-        if @files.any?
-          chosen_file = @files.first
-          f = upload_file(chosen_file)
-          @actor.update_content(f)
-          @actor.file_set.title = [File.basename(chosen_file)]
+
+        change_set = ::Hyrax::Forms::ResourceForm.for(resource: @file_set)
+        attributes = coerce_valkyrie_params
+        result =
+          change_set.validate(attributes) &&
+          ::Hyrax::Transactions::Container['change_set.update_file_set']
+          .with_step_args(
+              'file_set.save_acl' => { permissions_params: change_set.input_params["permissions"] }
+            )
+          .call(change_set).value_or { false }
+        @file_set = result if result
+      end
+
+      def coerce_valkyrie_params
+        attrs = @attributes
+
+        [:permissions].each do |name|
+          next unless attrs["#{name}_attributes"].is_a?(Array)
+          new_perm_attrs = {}
+          attrs["#{name}_attributes"].each_with_index do |el, i|
+            new_perm_attrs[i] = el
+          end
+
+          attrs["#{name}_attributes"] = new_perm_attrs
         end
-        # update_metadata
-        @actor.update_metadata(update_file_set_attributes) unless @attributes.blank?
+        attrs
       end
 
       def create_file_set_attributes

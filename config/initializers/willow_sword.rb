@@ -17,4 +17,6 @@ WillowSword.setup do |config|
   config.xml_mapping_read = 'DC'
   # Authorize Sword requests using Api-key header
   config.authorize_request = false
+  # Default work model when no work model is provided
+  config.default_work_model = 'GenericWork'
 end

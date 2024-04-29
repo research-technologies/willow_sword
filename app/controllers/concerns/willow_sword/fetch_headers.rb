@@ -56,7 +56,7 @@ module WillowSword
 
     # custom header for model HyraxWorkModel
     def fetch_hyrax_work_model
-      model = request.headers.fetch('Hyrax-Work-Model', nil)
+      model = request.headers.fetch('Hyrax-Work-Model', default_work_model)
       model = model.underscore.gsub('_', ' ').gsub('-', ' ').downcase unless model.blank?
       @headers[:hyrax_work_model] = model
     end
@@ -65,5 +65,11 @@ module WillowSword
       @headers[:api_key] = request.headers.fetch('Api-key', nil)
     end
 
+    # Looks for the lazy migration convention if it exists
+    def default_work_model
+      model = WillowSword.config.default_work_model
+      model = "#{model.to_s}Resource".safe_constantize || model
+      model.to_s
+    end
   end
 end

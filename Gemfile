@@ -17,4 +17,5 @@ group :test do
   gem 'rspec-rails' #, '~> 3.5'
   gem 'factory_girl_rails' # , '~> 4.0'
   gem 'shoulda-matchers' #, '~> 3.1'
+  gem 'byebug'
 end

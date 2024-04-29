@@ -17,6 +17,13 @@ module WillowSword
       verify_data
     end
 
+    def save_atom_xml_data
+      xml_path = fetch_data(request.body.read, 'xml', true)
+      organize_data(xml_path)
+      parse_metadata(xml_path)
+      verify_data
+    end
+
     def fetch_metadata
       metadata_path = nil
       if params[:metadata]
@@ -56,6 +63,7 @@ module WillowSword
       when 'binary'
         new_file_name = @headers[:filename]
         path = File.join(@dir, new_file_name)
+        data.rewind
         File.open(path, 'wb') do |f|
           data.each { |line| f.write(line) }
         end
