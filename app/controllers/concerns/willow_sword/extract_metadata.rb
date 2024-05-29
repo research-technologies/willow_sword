@@ -11,7 +11,7 @@ module WillowSword
         assign_mods_to_model
         @attributes = xw.mapped_metadata
       else
-        xw = WillowSword::DcCrosswalk.new(file_path)
+        xw = WillowSword::DcCrosswalk.new(file_path, @work_klass)
         xw.map_xml
         @attributes = xw.metadata
       end

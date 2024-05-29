@@ -8,7 +8,7 @@ xml.feed(xmlns:"http://www.w3.org/2005/Atom",
   xml.link(rel:"edit", href:collection_work_file_set_url(params[:collection_id], params[:work_id], @file_set))
 
   # Add dc metadata
-  xw = WillowSword::DcCrosswalk.new(nil)
+  xw = WillowSword::DcCrosswalk.new(nil, @work_klass)
   @file_set.attributes.each do |attr, values|
     if xw.terms.include?(attr.to_s)
       term = xw.translated_terms.key(attr.to_s).present? ? xw.translated_terms.key(attr.to_s) : attr.to_s

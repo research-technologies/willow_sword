@@ -51,8 +51,10 @@ module WillowSword
 
     def perform_create
       return false unless validate_and_save_request
-      return false unless parse_metadata(@metadata_file, true)
+
       set_work_klass
+      return false unless parse_metadata(@metadata_file, true)
+
       upload_files unless @files.blank?
       add_work
       true

@@ -1,13 +1,15 @@
 module WillowSword
   class DcCrosswalk
-    attr_reader :metadata, :model, :terms, :translated_terms, :singular
-    def initialize(src_file)
+    attr_reader :metadata, :model, :terms, :translated_terms, :singular, :work_klass
+    def initialize(src_file, work_klass)
       @src_file = src_file
       @metadata = {}
+      @work_klass = work_klass
+      @terms = terms_for(work_klass)
     end
 
     def terms
-      %w(abstract accessRights accrualMethod accrualPeriodicity
+      @terms ||= %w(abstract accessRights accrualMethod accrualPeriodicity
         accrualPolicy alternative audience available bibliographicCitation
         conformsTo contributor coverage created creator date dateAccepted
         dateCopyrighted dateSubmitted description educationLevel extent
@@ -60,6 +62,18 @@ module WillowSword
       end
     end
 
+    private
+
+    def terms_for(work_klass)
+      return unless work_klass.present?
+
+      # Currently we have to instantiate the form off an instance of the work to get the fields to include the visibility fields.  `Work.fields` wasn't enough.
+      # TODO: Find a better way to get the fields with visibility included.
+      work_form_klass(work_klass).new(resource: work_klass.new).fields.keys
+    end
+
+    def work_form_klass(work_klass)
+      "#{work_klass}Form".constantize
+    end
   end
 end
-
