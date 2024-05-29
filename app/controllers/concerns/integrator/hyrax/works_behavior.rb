@@ -65,7 +65,7 @@ module Integrator
           transactions["change_set.update_work"]
             .with_step_args(
               'work_resource.add_file_sets' => { uploaded_files: uploaded_files },
-              'work_resource.save_acl' => { permissions_params: [update_attributes.try('visibility') || 'open'].compact }
+              'work_resource.save_acl' => { permissions_params: [update_attributes.try('visibility')].compact }
             )
         end
       end
@@ -80,7 +80,7 @@ module Integrator
               'work_resource.add_file_sets' => { uploaded_files: uploaded_files },
               'change_set.set_user_as_depositor' => { user: @current_user },
               'work_resource.change_depositor' => { user: @current_user },
-              'work_resource.save_acl' => { permissions_params: [attrs['visibility'] || 'open'].compact }
+              'work_resource.save_acl' => { permissions_params: [attrs['visibility']].compact }
             )
         end
       end

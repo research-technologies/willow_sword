@@ -30,7 +30,7 @@ module WillowSword
     end
 
     def singular
-      %w(rights)
+      %w(rights visibility)
     end
 
     def map_xml

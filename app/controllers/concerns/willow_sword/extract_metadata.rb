@@ -14,9 +14,14 @@ module WillowSword
         xw = WillowSword::DcCrosswalk.new(file_path, @work_klass)
         xw.map_xml
         @attributes = xw.metadata
+        set_visibility
       end
       @resource_type = xw.model if @attributes.any?
     end
 
+    def set_visibility
+      @attributes[:visibility] ||= 'open'
+      @attributes
+    end
   end
 end
