@@ -156,7 +156,12 @@ module Integrator
         end
 
         def permitted_attributes
-          (@work_klass.attribute_names + [:id, :edit_users, :edit_groups, :read_groups, :visibility]).uniq
+          (@work_klass.attribute_names + [:id, :edit_users, :edit_groups, :read_groups] + visibility_attributes).uniq
+        end
+
+        def visibility_attributes
+          %i(visibility visibility_during_embargo visibility_after_embargo embargo_release_date
+            visibility_during_lease visibility_after_lease lease_expiration_date)
         end
 
         def find_work_klass(work_id)

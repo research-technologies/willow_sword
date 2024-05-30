@@ -5,7 +5,7 @@ module WillowSword
       @src_file = src_file
       @metadata = {}
       @work_klass = work_klass
-      @terms = terms_for(work_klass)
+      @terms = terms_for(work_klass) + visibility_terms if work_klass.present?
     end
 
     def terms
@@ -30,7 +30,7 @@ module WillowSword
     end
 
     def singular
-      %w(rights visibility)
+      %w(rights visibility) + visibility_terms
     end
 
     def map_xml
@@ -60,6 +60,11 @@ module WillowSword
           |t| t.underscore.gsub('_', ' ').gsub('-', ' ').downcase
         }.first
       end
+    end
+
+    def visibility_terms
+      %w(visibility_during_embargo visibility_after_embargo embargo_release_date
+        visibility_during_lease visibility_after_lease lease_expiration_date)
     end
 
     private

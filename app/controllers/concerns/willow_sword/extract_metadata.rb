@@ -19,9 +19,34 @@ module WillowSword
       @resource_type = xw.model if @attributes.any?
     end
 
-    def set_visibility
-      @attributes[:visibility] ||= 'open'
-      @attributes
-    end
+    private
+
+      def set_visibility
+        # Default to open visibility
+        @attributes[:visibility] ||= 'open'
+        # If visibility is set to embargo or lease but not all fields are present, fall back to restricted
+        @attributes[:visibility] = 'restricted' unless all_embargo_fields_present? || all_lease_fields_present?
+        @attributes
+      end
+
+      def all_embargo_fields_present?
+        @attributes[:visibility] == 'embargo' && all_embargo_fields?
+      end
+
+      def all_lease_fields_present?
+        @attributes[:visibility] == 'lease' && all_lease_fields?
+      end
+
+      def all_embargo_fields?
+        @attributes[:embargo_release_date].present? &&
+          @attributes[:visibility_during_embargo].present? &&
+          @attributes[:visibility_after_embargo].present?
+      end
+
+      def all_lease_fields?
+        @attributes[:visibility_during_lease].present? &&
+          @attributes[:visibility_after_lease].present? &&
+          @attributes[:lease_expiration_date].present?
+      end
   end
 end
