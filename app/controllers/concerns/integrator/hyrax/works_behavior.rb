@@ -65,7 +65,7 @@ module Integrator
           transactions["change_set.update_work"]
             .with_step_args(
               'work_resource.add_file_sets' => { uploaded_files: uploaded_files },
-              'work_resource.save_acl' => { permissions_params: [update_attributes.try('visibility') || 'open'].compact }
+              'work_resource.save_acl' => { permissions_params: [update_attributes.try('visibility')].compact }
             )
         end
       end
@@ -80,7 +80,7 @@ module Integrator
               'work_resource.add_file_sets' => { uploaded_files: uploaded_files },
               'change_set.set_user_as_depositor' => { user: @current_user },
               'work_resource.change_depositor' => { user: @current_user },
-              'work_resource.save_acl' => { permissions_params: [attrs['visibility'] || 'open'].compact }
+              'work_resource.save_acl' => { permissions_params: [attrs['visibility']].compact }
             )
         end
       end
@@ -156,7 +156,12 @@ module Integrator
         end
 
         def permitted_attributes
-          (@work_klass.attribute_names + [:id, :edit_users, :edit_groups, :read_groups, :visibility]).uniq
+          (@work_klass.attribute_names + [:id, :edit_users, :edit_groups, :read_groups] + visibility_attributes).uniq
+        end
+
+        def visibility_attributes
+          %i(visibility visibility_during_embargo visibility_after_embargo embargo_release_date
+            visibility_during_lease visibility_after_lease lease_expiration_date)
         end
 
         def find_work_klass(work_id)
